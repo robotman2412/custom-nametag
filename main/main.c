@@ -12,6 +12,7 @@
 #include "esp_system.h"
 #include "esp_timer.h"
 
+#include "ws2812.h"
 #include "pax_shaders.h"
 
 static pax_buf_t buf;
@@ -61,6 +62,26 @@ void app_main() {
     pax_background(&buf, bg);
     draw_partial();
     pax_mark_dirty0(&buf);
+    
+    // Set some fancy LED colors.
+    uint8_t led_data[5 * 3];
+    pax_col_t led_cols[5] = {
+        0x00003f,
+        0x00003f,
+        0x00003f,
+        0x00003f,
+        0x00003f,
+    };
+    for (int i = 0; i < 5; i++) {
+        // led_data[i*3]   = (led_cols[i] & 0xff0000) >> 16;
+        // led_data[i*3+1] = (led_cols[i] & 0x00ff00) >>  8;
+        // led_data[i*3+2] = (led_cols[i] & 0x0000ff) >>  0;
+        led_data[i*3]   = 255;
+        led_data[i*3+1] = 255;
+        led_data[i*3+2] = 255;
+    }
+    ws2812_init(GPIO_LED_DATA);
+    ws2812_send_data(led_data, sizeof(led_data));
     
     uint64_t start = esp_timer_get_time() / 1000;
     uint64_t time;
