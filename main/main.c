@@ -11,6 +11,9 @@
 #include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+#include "esp_sleep.h"
+#include "soc/rtc.h"
+#include "soc/rtc_cntl_reg.h"
 
 #include "ws2812.h"
 #include "pax_shaders.h"
@@ -41,6 +44,24 @@ void disp_sync() {
         buf.dirty_y1 - buf.dirty_y0
     );
     pax_mark_clean(&buf);
+}
+
+void exit_to_launcher() {
+    REG_WRITE(RTC_CNTL_STORE0_REG, 0);
+    esp_restart();
+}
+
+void place_in_sleep() {
+    esp_sleep_enable_ext0_wakeup(GPIO_INT_RP2040, false);
+    ESP_LOGW(TAG, "Entering deep sleep now!");
+    REG_WRITE(RTC_CNTL_STORE0_REG, 0);
+    fflush(stdout);
+    fflush(stderr);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_deep_sleep_start();
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
 
 static pax_col_t bg = 0xff6942a2;
@@ -89,6 +110,15 @@ void app_main() {
         time = esp_timer_get_time() / 1000;
         float angle = M_PI * time / -5000.0;
         draw_gear(angle);
+        rp2040_input_message_t msg;
+        if (xQueueReceive(buttonQueue, &msg, 0) && msg.state) {
+            if (msg.input == RP2040_INPUT_BUTTON_HOME || msg.input == RP2040_INPUT_BUTTON_BACK) {
+                exit_to_launcher();
+            } else if (msg.input == RP2040_INPUT_JOYSTICK_PRESS) {
+                draw_simple();
+                place_in_sleep();
+            }
+        }
     }
 }
 
