@@ -40,3 +40,6 @@
 [submodule "main/pax-keyboard"]
 	path = components/pax-keyboard
 	url = https://github.com/robotman2412/pax-keyboard
+[submodule "tools"]
+	path = tools
+	url = https://github.com/badgeteam/mch2022-tools
